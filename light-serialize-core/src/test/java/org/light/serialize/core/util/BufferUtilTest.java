@@ -4,6 +4,9 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.light.serialize.core.buffer.LinkedByteBuffer;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.light.serialize.core.util.BufferUtil.*;
 
 /**
@@ -13,10 +16,17 @@ import static org.light.serialize.core.util.BufferUtil.*;
  */
 public class BufferUtilTest {
 
-    private static final long[] longArray = {-1, 6305512404777178521L, -149250664738802268L, -7512732061384969157L, -6890220891978031564L, -718887517233981794L, -9145578169762338939L, -8299652195991305653L, -3678064849912537449L, 123598630025901706L, -6353381134012744599L, -7833830815400630381L, 7716687469028253537L, 8145128924466159385L, 3068366191465575669L, 5454602903149636570L, 7818991702724107164L, 2841864352755611310L, -8812001961640259700L, -7632512846822695675L, -6927353102227825787L, -5994445847729675952L, 7598423622942254562L, 3039731498643049434L, 912257043042009016L};
+    @Test
+    public void testWriteReadBool() {
+        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
+        writeBool(buffer, true);
+        writeBool(buffer, false);
+        Assert.assertTrue(readBool(buffer));
+        Assert.assertFalse(readBool(buffer));
+    }
 
     @Test
-    public void testWriteChar() {
+    public void testWriteReadChar() {
         LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
         for (int i = Byte.MIN_VALUE; i < Byte.MAX_VALUE; i++) {
             writeChar(buffer, (char) i);
@@ -25,81 +35,53 @@ public class BufferUtilTest {
     }
 
     @Test
-    public void testWriteShort() {
+    public void testWriteReadShort() {
         LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
         for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             writeShort(buffer, (short) i);
             Assert.assertEquals(readShort(buffer), (short) i);
-        }
-    }
-
-    @Test
-    public void testWriteVarShort() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             writeVarShort(buffer, (short) i);
             Assert.assertEquals(readVarShort(buffer), (short) i);
+            writeReverseVarShort(buffer, (short) i);
+            Assert.assertEquals(readReverseVarShort(buffer), (short) i);
         }
     }
 
     @Test
-    public void testWriteInt() {
+    public void testWriteReadInt() {
         LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
         for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             writeInt(buffer, i);
             Assert.assertEquals(readInt(buffer), i);
-        }
-
-        writeInt(buffer, Integer.MIN_VALUE);
-        Assert.assertEquals(readInt(buffer), Integer.MIN_VALUE);
-
-        writeInt(buffer, Integer.MAX_VALUE);
-        Assert.assertEquals(readInt(buffer), Integer.MAX_VALUE);
-    }
-
-    @Test
-    public void testWriteReadVarInt() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             writeVarInt(buffer, i);
             Assert.assertEquals(readVarInt(buffer), i);
-        }
-
-        writeVarInt(buffer, Integer.MIN_VALUE);
-        Assert.assertEquals(readVarInt(buffer), Integer.MIN_VALUE);
-
-        writeVarInt(buffer, Integer.MAX_VALUE);
-        Assert.assertEquals(readVarInt(buffer), Integer.MAX_VALUE);
-    }
-
-    @Test
-    public void testWriteReadComplementVarInt() {
-        // LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        // for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
-        //     writeComplementVarInt(buffer, i);
-        //     Assert.assertEquals(readComplementVarInt(buffer), i);
-        // }
-        //
-        // writeComplementVarInt(buffer, Integer.MIN_VALUE);
-        // Assert.assertEquals(readComplementVarInt(buffer), Integer.MIN_VALUE);
-        //
-        // writeComplementVarInt(buffer, Integer.MAX_VALUE);
-        // Assert.assertEquals(readComplementVarInt(buffer), Integer.MAX_VALUE);
-    }
-
-    @Test
-    public void testWriteReadZigzagVarInt() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
+            writeReverseVarInt(buffer, i);
+            Assert.assertEquals(readReverseVarInt(buffer), i);
             writeZigzagVarInt(buffer, i);
             Assert.assertEquals(readZigzagVarInt(buffer), i);
         }
 
-        writeZigzagVarInt(buffer, Integer.MIN_VALUE);
-        Assert.assertEquals(readZigzagVarInt(buffer), Integer.MIN_VALUE);
+        List<Integer> bounds = new ArrayList<>(256);
+        bounds.add(Integer.MIN_VALUE);
+        bounds.add(Integer.MIN_VALUE + 1);
+        bounds.add(Integer.MAX_VALUE);
+        bounds.add(Integer.MAX_VALUE - 1);
+        for (int i = 0; i < 64; i++) {
+            bounds.add(1 << i);
+            bounds.add((1 << i) + 1);
+            bounds.add((1 << i) - 1);
+        }
 
-        writeZigzagVarInt(buffer, Integer.MAX_VALUE);
-        Assert.assertEquals(readZigzagVarInt(buffer), Integer.MAX_VALUE);
+        for (int val : bounds) {
+            writeInt(buffer, val);
+            Assert.assertEquals(readInt(buffer), val);
+            writeVarInt(buffer, val);
+            Assert.assertEquals(readVarInt(buffer), val);
+            writeReverseVarInt(buffer, val);
+            Assert.assertEquals(readReverseVarInt(buffer), val);
+            writeZigzagVarInt(buffer, val);
+            Assert.assertEquals(readZigzagVarInt(buffer), val);
+        }
     }
 
     @Test
@@ -108,81 +90,35 @@ public class BufferUtilTest {
         for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             writeLong(buffer, i);
             Assert.assertEquals(readLong(buffer), i);
-        }
-
-        writeLong(buffer, Long.MIN_VALUE);
-        Assert.assertEquals(readLong(buffer), Long.MIN_VALUE);
-
-        writeLong(buffer, Long.MAX_VALUE);
-        Assert.assertEquals(readLong(buffer), Long.MAX_VALUE);
-    }
-
-    @Test
-    public void testWriteReadVarLong() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             writeVarLong(buffer, i);
             Assert.assertEquals(readVarLong(buffer), i);
-        }
-
-        writeVarLong(buffer, Long.MIN_VALUE);
-        Assert.assertEquals(readVarLong(buffer), Long.MIN_VALUE);
-
-        writeVarLong(buffer, Long.MAX_VALUE);
-        Assert.assertEquals(readVarLong(buffer), Long.MAX_VALUE);
-
-        long testLongVal1 = (1l << 41);
-        writeVarLong(buffer, testLongVal1);
-        Assert.assertEquals(readVarLong(buffer), testLongVal1);
-
-        long testLongVal2 = (1l << 48);
-        writeVarLong(buffer, testLongVal2);
-        Assert.assertEquals(readVarLong(buffer), testLongVal2);
-
-        for (int i = 0; i < longArray.length; i++) {
-            long l = longArray[i];
-            writeVarLong(buffer, l);
-            Assert.assertEquals(readVarLong(buffer), l);
-        }
-
-    }
-
-    @Test
-    public void testWriteReadComplementVarLong() {
-        // LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        // for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
-        //     writeComplementVarLong(buffer, i);
-        //     Assert.assertEquals(readComplementVarLong(buffer), i);
-        // }
-        //
-        // writeComplementVarLong(buffer, Long.MIN_VALUE);
-        // Assert.assertEquals(readComplementVarLong(buffer), Long.MIN_VALUE);
-        //
-        // writeComplementVarLong(buffer, Long.MAX_VALUE);
-        // Assert.assertEquals(readComplementVarLong(buffer), Long.MAX_VALUE);
-    }
-
-    @Test
-    public void testWriteReadZigzagVarLong() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
+            writeReverseVarLong(buffer, i);
+            Assert.assertEquals(readReverseVarLong(buffer), i);
             writeZigzagVarLong(buffer, i);
             Assert.assertEquals(readZigzagVarLong(buffer), i);
         }
 
-        writeZigzagVarLong(buffer, Long.MIN_VALUE);
-        Assert.assertEquals(readZigzagVarLong(buffer), Long.MIN_VALUE);
-
-        writeZigzagVarLong(buffer, Long.MAX_VALUE);
-        Assert.assertEquals(readZigzagVarLong(buffer), Long.MAX_VALUE);
-
-        for (int i = 0; i < longArray.length; i++) {
-            long l = longArray[i];
-            writeZigzagVarLong(buffer, l);
-            Assert.assertEquals(readZigzagVarLong(buffer), l);
+        List<Long> bounds = new ArrayList<>(256);
+        bounds.add((long) Integer.MIN_VALUE);
+        bounds.add((long) Integer.MIN_VALUE + 1);
+        bounds.add((long) Integer.MAX_VALUE);
+        bounds.add((long) Integer.MAX_VALUE - 1);
+        for (int i = 0; i < 64; i++) {
+            bounds.add(1L << i);
+            bounds.add((1L << i) + 1);
+            bounds.add((1L << i) - 1);
         }
 
-        System.out.println(buffer.readableBytes());
+        for (long val : bounds) {
+            writeLong(buffer, val);
+            Assert.assertEquals(readLong(buffer), val);
+            writeVarLong(buffer, val);
+            Assert.assertEquals(readVarLong(buffer), val);
+            writeReverseVarLong(buffer, val);
+            Assert.assertEquals(readReverseVarLong(buffer), val);
+            writeZigzagVarLong(buffer, val);
+            Assert.assertEquals(readZigzagVarLong(buffer), val);
+        }
     }
 
     @Test
@@ -191,36 +127,16 @@ public class BufferUtilTest {
         for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
             float floatVal = Float.valueOf(i + "." + Math.abs(i));
             writeFloat(buffer, floatVal);
-            Assert.assertEquals(readFloat(buffer), floatVal, 0);
+            float expected = readFloat(buffer);
+            Assert.assertEquals(expected, floatVal, 0);
         }
 
-        writeFloat(buffer, Float.MIN_VALUE);
-        Assert.assertEquals(0, readFloat(buffer), Float.MIN_VALUE);
-
-        writeFloat(buffer, Float.MAX_VALUE);
-        Assert.assertEquals(0, readFloat(buffer), Float.MAX_VALUE);
-
-        writeFloat(buffer, Float.NaN);
-        Assert.assertEquals(readFloat(buffer), Float.NaN, 0);
-    }
-
-    @Test
-    public void testWriteReadVarFloat() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        // for (int i = Short.MIN_VALUE; i < Short.MAX_VALUE; i++) {
-        //     float floateVal = Float.valueOf(i + "." + Math.abs(i));
-        //     writeVarFloat(buffer, floateVal);
-        //     Assert.assertEquals(readVarFloat(buffer), floateVal, 0);
-        // }
-        //
-        // writeVarFloat(buffer, Float.MIN_VALUE);
-        // Assert.assertEquals(0, readVarFloat(buffer), Float.MIN_VALUE);
-        //
-        // writeVarFloat(buffer, Float.MAX_VALUE);
-        // Assert.assertEquals(0, readVarFloat(buffer), Float.MAX_VALUE);
-        //
-        // writeVarFloat(buffer, Float.NaN);
-        // Assert.assertEquals(readVarFloat(buffer), Float.NaN, 0);
+        float[] bounds = {Float.MIN_VALUE, Float.MIN_VALUE + 1, Float.MAX_VALUE, Float.MAX_VALUE - 1, Float.NaN,
+                Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY};
+        for (float val : bounds) {
+            writeFloat(buffer, val);
+            Assert.assertEquals(readFloat(buffer), val, 0);
+        }
     }
 
     @Test
@@ -232,33 +148,13 @@ public class BufferUtilTest {
             Assert.assertEquals(readDouble(buffer), doubleVal, 0);
         }
 
-        writeDouble(buffer, Double.MIN_VALUE);
-        Assert.assertEquals(0, readDouble(buffer), Double.MIN_VALUE);
-
-        writeDouble(buffer, Double.MAX_VALUE);
-        Assert.assertEquals(0, readDouble(buffer), Double.MAX_VALUE);
-
-        writeDouble(buffer, Double.NaN);
-        Assert.assertEquals(readDouble(buffer), Double.NaN, 0);
-    }
-
-    @Test
-    public void testWriteReadVarDouble() {
-        LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
-        // for (int i = 0; i < Short.MAX_VALUE; i++) {
-        //     double doubleVal = Double.valueOf(i + "." + i);
-        //     writeVarDouble(buffer, doubleVal);
-        //     Assert.assertEquals(readVarDouble(buffer), doubleVal, 0);
-        // }
-        //
-        // writeVarDouble(buffer, Double.MIN_VALUE);
-        // Assert.assertEquals(0, readVarDouble(buffer), Double.MIN_VALUE);
-        //
-        // writeVarDouble(buffer, Double.MAX_VALUE);
-        // Assert.assertEquals(0, readVarDouble(buffer), Double.MAX_VALUE);
-        //
-        // writeVarDouble(buffer, Double.NaN);
-        // Assert.assertEquals(readVarDouble(buffer), Double.NaN, 0);
+        double[] bounds = {Float.MIN_VALUE, Float.MIN_VALUE + 1, Float.MAX_VALUE, Float.MAX_VALUE - 1, Float.NaN,
+                Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY, Double.MIN_VALUE, Double.MIN_VALUE + 1,
+                Double.MAX_VALUE, Double.MAX_VALUE - 1, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY};
+        for (double val : bounds) {
+            writeDouble(buffer, val);
+            Assert.assertEquals(readDouble(buffer), val, 0);
+        }
     }
 
     @Test
@@ -266,19 +162,37 @@ public class BufferUtilTest {
         LinkedByteBuffer buffer = LinkedByteBuffer.alloc();
 
         writeString(buffer, null);
-        String nullStr = readString(buffer);
-        Assert.assertNull(nullStr);
+        Assert.assertNull(readString(buffer));
 
         writeString(buffer, "");
-        String emptyStr = readString(buffer);
-        Assert.assertEquals(emptyStr, "");
+        Assert.assertEquals(readString(buffer), "");
 
-        String asciiUtf8tr = "0123456789~!@#$%^&*()";
-        writeString(buffer, asciiUtf8tr);
-        Assert.assertEquals(asciiUtf8tr, readString(buffer));
+        writeString(buffer, "hello");
+        Assert.assertEquals(readString(buffer), "hello");
 
-        String testUtf8tr = asciiUtf8tr + "qwertyuiopasdfghjklzxcvbnm,.<>?mnbvcxzlkjhgfdsapoiuytrewq";
-        writeString(buffer, testUtf8tr);
-        Assert.assertEquals(testUtf8tr, readString(buffer));
+        StringBuilder asciiStrBuilder = new StringBuilder(256);
+        for (int i = 0; i < Byte.MAX_VALUE; i++) {
+            asciiStrBuilder.append((char) i);
+        }
+
+        String asciiBuilder = asciiStrBuilder.toString();
+        writeString(buffer, asciiBuilder);
+        Assert.assertEquals(asciiBuilder, readString(buffer));
+
+        String chineseStr = "你好";
+        writeString(buffer, chineseStr);
+        Assert.assertEquals(chineseStr, readString(buffer));
+
+        String expressionStr = "😀😃😄😁😆😅😂🤣😇😉😊🙂🙃☺😋😌😍🥰😘😗😙😚🥲🤪😜😝😛🤑😎🤓🥸🧐🤠🥳" +
+                "🤗🤡😏😶😐😑😒🙄🤨🤔🤫🤭🤥😳😞😟😠😡🤬😔😕🙁☹😬🥺😣😖😫😩🥱😤😮‍💨😮😱😨😰😯😦😧😢" +
+                "😥😪🤤😓😭🤩😵😵‍💫🥴😲🤯🤐😷🤕🤒🤮🤢🤧🥵🥶😶‍🌫️😴💤😈👿👹👺💩👻💀☠👽🤖🎃😺😸😹😻😼😽" +
+                "🙀😿😾👐🤲🙌👏🙏🤝👍👎👊✊🤛🤜🤞✌🤘🤟👌🤌🤏👈👉👆👇☝✋🤚🖐🖖👋🤙💪🦾🖕✍🤳💅🦵🦿🦶" +
+                "👄🦷👅👂🦻👃👁👀🧠🫀🫁🦴👤👥🗣🫂👶👧🧒👦👩🧑👨👩‍🦱🧑‍🦱👨‍🦱👩‍🦰🧑‍🦰👨‍🦰👱‍♀️👱👱‍♂️👩‍🦳🧑‍🦳👨‍🦳👩‍🦲🧑‍🦲👨‍🦲🧔‍♀️🧔" +
+                "🧔‍♂️👵🧓👴👲👳‍♀️👳👳‍♂️🧕👼👸🤴👰👰‍♀️👰‍♂️🤵‍♀️🤵🤵‍♂️🙇‍♀️🙇🙇‍♂️💁‍♀️💁💁‍♂️🙅‍♀️🙅🙅‍♂️🙆‍♀️🙆🙆‍♂️🤷‍♀️🤷" +
+                "🤷‍♂️🙋‍♀️🙋🙋‍♂️🤦‍♀️🤦🤦‍♂️🧏‍♀️🧏🧏‍♂️🙎‍♀️🙎🙎‍♂️🙍‍♀️🙍🙍‍♂️💇‍♀️💇💇‍♂️💆‍♀️💆💆‍♂️🤰🤱👩‍🍼🧑‍🍼👨‍🍼🧎‍♀️🧎🧎‍♂️🧍‍♀️🧍" +
+                "🧍‍♂️🚶‍♀️🚶🚶‍♂️👩‍🦯🧑‍🦯👨‍🦯🏃‍♀️🏃🏃‍♂️👩‍🦼🧑‍🦼👨‍🦼👩‍🦽🧑‍🦽👨‍🦽💃🕺👫👭👬🧑‍🤝‍🧑👩‍❤️‍👨👩‍❤️‍👩💑👨‍❤️‍👨👩‍❤️‍💋‍👨👩‍❤️‍💋‍👩💏👨‍❤️‍💋‍👨❤" +
+                "🧡💛💚💙💜🤎🖤🤍💔❣💕💞💓💗💖💘💝❤️‍🔥❤️‍🩹💟";
+        writeString(buffer, expressionStr);
+        Assert.assertEquals(expressionStr, readString(buffer));
     }
 }

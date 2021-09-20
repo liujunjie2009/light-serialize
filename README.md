@@ -60,8 +60,7 @@ Light-serialize在提供更多序列化方式满足不同场景的同时，修�
       * [自定义序列化Serializer](#自定义序列化Serializer)
 * [instantiator](#instantiator)
 * [最佳实战](#最佳实战)
-* [基于netty封装0拷贝的Buffer实现RPC](#基于netty封装0拷贝的Buffer实现RPC)
-
+* [高阶应用:基于netty封装0拷贝的Buffer实现RPC](#高阶应用:基于netty封装0拷贝的Buffer实现RPC)
 
 
 
@@ -415,7 +414,7 @@ Light-serialize在反序列化时并不要求类提供无参构造函数，默�
 
 
    
-# 基于netty封装0拷贝的Buffer实现RPC
+# 高阶应用:基于netty封装0拷贝的Buffer实现RPC
 封装netty的ByteBuf，在Rpc调用过程中,Rpc请求和响应对象的二进制流直接写入ByteBuf，不需要拷贝数据。
 参考：light-serialize-example中的netty部分。启动RpcApplication即可。
 

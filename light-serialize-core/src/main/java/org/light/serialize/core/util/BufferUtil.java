@@ -1,9 +1,7 @@
 package org.light.serialize.core.util;
 
 import org.light.serialize.core.buffer.Buffer;
-import org.light.serialize.core.constants.TagId;
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -53,15 +51,15 @@ public class BufferUtil {
      */
     public static short readReverseVarShort(Buffer buffer) {
         int b = buffer.readByte();
-        int result = b & 0XFE;
+        int result = (b & 0XFE) << 8;
 
         if ((b & 1) != 0) {
             b = buffer.readByte();
-            result = (result << 7) | ((b & 0XFE) << 1);
+            result |= ((b & 0XFE) << 1);
 
             if ((b & 1) != 0) {
                 b = buffer.readByte();
-                result |=  b >> 6;
+                result |=  b;
             }
         }
 
@@ -73,6 +71,23 @@ public class BufferUtil {
      */
     public static char readChar(Buffer buffer) {
         return (char) readShort(buffer);
+    }
+
+    /**
+     * Read char, 1-3 byte.
+     */
+    public static char readUtf8Char(Buffer buffer) {
+        int c = buffer.readByte();
+        if ((c & 0X80) == 0) {
+            return (char) c;
+        } else if ((c & 0XE0) == 0XE0) {
+            return (char) (((c & 0X0F) << 12) + ((buffer.readByte() & 0X3F) << 6) + (buffer.readByte() & 0X3F));
+        } /*else if ((c & 0XF0) == 0XE0) {
+                chars[i] = (char) (((c & 0X1F) << 6) + (buffer.readByte() & 0X3F));
+            } */else {
+            // throw error("bad utf-8 encoding at " + codeName(ch));
+            return (char) (((c & 0X1F) << 6) + (buffer.readByte() & 0X3F));
+        }
     }
 
     /**
@@ -116,23 +131,23 @@ public class BufferUtil {
      */
     public static int readReverseVarInt(Buffer buffer) {
         int b = buffer.readByte();
-        int result = b & 0XFE;
+        int result = (b & 0XFE) << 24;
 
         if ((b & 1) != 0) {
             b = buffer.readByte();
-            result = (result << 7) | ((b & 0XFE) << 1);
+            result |= ((b & 0XFE) << 17);
 
             if ((b & 1) != 0) {
                 b = buffer.readByte();
-                result = (result << 7) | ((b & 0XFE) << 1);
+                result |= ((b & 0XFE) << 10);
 
                 if ((b & 1) != 0) {
                     b = buffer.readByte();
-                    result = (result << 7) | ((b & 0XFE) << 1);
+                    result |= ((b & 0XFE) << 3);
 
                     if ((b & 1) != 0) {
                         b = buffer.readByte();
-                        result = (result << 4) | ((b & 0XFE) >> 4);
+                        result |= b;
                     }
                 }
             }
@@ -210,40 +225,40 @@ public class BufferUtil {
      * Read variable-length int, 1-9 byte.
      */
     public static long readReverseVarLong(Buffer buffer) {
-        int b = buffer.readByte();
-        long result = b & 0XFE;
+        long b = buffer.readByte();
+        long result = (b & 0XFE) << 56;
 
         if ((b & 1) != 0) {
             b = buffer.readByte();
-            result = (result << 7) | ((b & 0XFE) << 1);
+            result |= ((b & 0XFE) << 49);
 
             if ((b & 1) != 0) {
                 b = buffer.readByte();
-                result = (result << 7) | ((b & 0XFE) << 1);
+                result |= ((b & 0XFE) << 42);
 
                 if ((b & 1) != 0) {
                     b = buffer.readByte();
-                    result = (result << 7) | ((b & 0XFE) << 1);
+                    result |= ((b & 0XFE) << 35);
 
                     if ((b & 1) != 0) {
                         b = buffer.readByte();
-                        result = (result << 7) | ((b & 0XFE) << 1);
+                        result |= ((b & 0XFE) << 28);
 
                         if ((b & 1) != 0) {
                             b = buffer.readByte();
-                            result = (result << 7) | ((b & 0XFE) << 1);
+                            result |= ((b & 0XFE) << 21);
 
                             if ((b & 1) != 0) {
                                 b = buffer.readByte();
-                                result = (result << 7) | ((b & 0XFE) << 1);
+                                result |= ((b & 0XFE) << 14);
 
                                 if ((b & 1) != 0) {
                                     b = buffer.readByte();
-                                    result = (result << 7) | ((b & 0XFE) << 1);
+                                    result |= ((b & 0XFE) << 7);
 
                                     if ((b & 1) != 0) {
                                         b = buffer.readByte();
-                                        result = (result << 8) | b;
+                                        result |= (b & 0XFF);
                                     }
                                 }
                             }
@@ -268,28 +283,18 @@ public class BufferUtil {
      * Read fixed-length float, 4 byte.
      */
     public static float readFloat(Buffer buffer) {
-        return Float.intBitsToFloat(buffer.readByte() & 0xFF
-                | (buffer.readByte() & 0xFF) << 8
-                | (buffer.readByte() & 0xFF) << 16
-                | (buffer.readByte() & 0xFF) << 24);
+        return Float.intBitsToFloat(readInt(buffer));
     }
 
     /**
      * Read fixed-length double, 8 byte.
      */
     public static double readDouble(Buffer buffer) {
-        return Double.longBitsToDouble(buffer.readByte() & 0xFF
-                | (buffer.readByte() & 0xFF) << 8
-                | (buffer.readByte() & 0xFF) << 16
-                | (long) (buffer.readByte() & 0xFF) << 24
-                | (long) (buffer.readByte() & 0xFF) << 32
-                | (long) (buffer.readByte() & 0xFF) << 40
-                | (long) (buffer.readByte() & 0xFF) << 48
-                | (long) buffer.readByte() << 56);
+        return Double.longBitsToDouble(readLong(buffer));
     }
 
     /**
-     * Read string, it is UTF_8 string when the first bit mask of length is 1, or it is ASCII string.
+     * Read UTF_8 string.
      */
     public static String readString(Buffer buffer) {
         int lengthTag = readVarInt(buffer);
@@ -298,25 +303,17 @@ public class BufferUtil {
             return null;
         }
 
-        if (lengthTag == 2) {
+        if (lengthTag == 1) {
             return "";
         }
 
-        byte[] bytes = buffer.readBytes((lengthTag >>> 1) - 1);
-
-        // ASCII
-        if ((lengthTag & 1) == 0) {
-            int length = bytes.length;
-            char[] chars = new char[length];
-            for (int i = 0; i < length; i++) {
-                chars[i] = (char) bytes[i];
-            }
-
-            return new String(chars);
+        int length = lengthTag - 1;
+        char[] chars = new char[length];
+        for (int i = 0; i < length; i++) {
+            chars[i] = readUtf8Char(buffer);
         }
 
-        // UTF-8
-        return new String(bytes, StandardCharsets.UTF_8);
+        return new String(chars);
     }
 
     /**
@@ -331,6 +328,22 @@ public class BufferUtil {
      */
     public static void writeChar(Buffer buffer, char val) {
         writeShort(buffer, (short) val);
+    }
+
+    /**
+     * Write char, 1-3 byte.
+     */
+    public static void writeUtf8Char(Buffer buffer, char val) {
+        if (val < 0X80) {
+            buffer.writeByte(val);
+        } else if (val < 0X800) {
+            buffer.writeByte(0xC0 | ((val >> 6) & 0x1F));
+            buffer.writeByte(0x80 | (val & 0x3F));
+        } else {
+            buffer.writeByte(0xE0 | ((val >> 12) & 0x0F));
+            buffer.writeByte(0x80 | ((val >> 6) & 0x3F));
+            buffer.writeByte(0x80 | (val & 0x3F));
+        }
     }
 
     /**
@@ -378,8 +391,8 @@ public class BufferUtil {
 
         buffer.writeByte((byte) (val >> 8) | 1);
         buffer.writeByte((byte) (val >> 1) | 1);
-        // last two bits.
-        buffer.writeByte(((byte) val) << 6);
+        // last two bit.
+        buffer.writeByte(((byte) (val & 3)));
         return 3;
     }
 
@@ -462,7 +475,8 @@ public class BufferUtil {
         buffer.writeByte((byte) (val >> 17) | 1);
         buffer.writeByte((byte) (val >> 10) | 1);
         buffer.writeByte((byte) (val >> 3) | 1);
-        buffer.writeByte((byte) (val << 4));
+        // last four bit.
+        buffer.writeByte((byte) (val & 15));
         return 5;
     }
 
@@ -495,17 +509,20 @@ public class BufferUtil {
             buffer.writeByte((byte) val);
             return 1;
         }
+
         if (val >>> 14 == 0) {
             buffer.writeByte((byte) ((val & 0x7F) | 0x80));
             buffer.writeByte((byte) (val >>> 7));
             return 2;
         }
+
         if (val >>> 21 == 0) {
             buffer.writeByte((byte) ((val & 0x7F) | 0x80));
             buffer.writeByte((byte) (val >>> 7 | 0x80));
             buffer.writeByte((byte) (val >>> 14));
             return 3;
         }
+
         if (val >>> 28 == 0) {
             buffer.writeByte((byte) ((val & 0x7F) | 0x80));
             buffer.writeByte((byte) (val >>> 7 | 0x80));
@@ -513,6 +530,7 @@ public class BufferUtil {
             buffer.writeByte((byte) (val >>> 21));
             return 4;
         }
+
         if (val >>> 35 == 0) {
             buffer.writeByte((byte) ((val & 0x7F) | 0x80));
             buffer.writeByte((byte) (val >>> 7 | 0x80));
@@ -521,6 +539,7 @@ public class BufferUtil {
             buffer.writeByte((byte) (val >>> 28));
             return 5;
         }
+
         if (val >>> 42 == 0) {
             buffer.writeByte((byte) ((val & 0x7F) | 0x80));
             buffer.writeByte((byte) (val >>> 7 | 0x80));
@@ -530,6 +549,7 @@ public class BufferUtil {
             buffer.writeByte((byte) (val >>> 35));
             return 6;
         }
+
         if (val >>> 49 == 0) {
             buffer.writeByte((byte) ((val & 0x7F) | 0x80));
             buffer.writeByte((byte) (val >>> 7 | 0x80));
@@ -636,7 +656,6 @@ public class BufferUtil {
             return 8;
         }
 
-
         buffer.writeByte((byte) (val >> 56) | 1);
         buffer.writeByte((byte) (val >> 49) | 1);
         buffer.writeByte((byte) (val >> 42) | 1);
@@ -671,7 +690,7 @@ public class BufferUtil {
     }
 
     /**
-     * Write string, it is UTF_8 string when the first bit mask of length is 1, or it is ASCII string.
+     * Write UTF_8 string.
      */
     public static void writeString(Buffer buffer, String val) {
         if (val == null) {
@@ -683,29 +702,15 @@ public class BufferUtil {
         int length = val.length();
         if (length == 0) {
             // length:1 means empty string
-            writeVarInt(buffer, 2);
+            writeVarInt(buffer, 1);
             return;
         }
 
-        // Detect ASCII
-        scan:
-        if (length > 0 && length < 64) {
-            for (int i = 0; i < length; i++) {
-                if (val.charAt(i) > 127) break scan;
-            }
+        writeVarInt(buffer, length + 1);
 
-            // ASCII flag
-            buffer.writeByte((length + 1) << 1);
-            for (int i = 0; i < length; i++) {
-                buffer.writeByte(val.charAt(i));
-            }
-            return;
+        for (int i = 0; i < length; i++) {
+            writeUtf8Char(buffer, val.charAt(i));
         }
-
-        byte[] bytes = val.getBytes(StandardCharsets.UTF_8);
-        // UTF-8 flag
-        writeVarInt(buffer, ((bytes.length + 1) << 1) | 1);
-        buffer.writeBytes(bytes);
     }
 
 }

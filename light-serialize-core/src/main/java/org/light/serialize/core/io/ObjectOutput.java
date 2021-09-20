@@ -49,6 +49,10 @@ public class ObjectOutput {
         BufferUtil.writeChar(buffer, val);
     }
 
+    public void writeUtf8Char(char val) {
+        BufferUtil.writeUtf8Char(buffer, val);
+    }
+
     public void writeShort(int val) {
         BufferUtil.writeShort(buffer, val);
     }

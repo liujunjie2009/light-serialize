@@ -52,6 +52,10 @@ public class ObjectInput {
         return BufferUtil.readChar(buffer);
     }
 
+    public char readUtf8Char() {
+        return BufferUtil.readUtf8Char(buffer);
+    }
+
     public int readInt() {
         return BufferUtil.readInt(buffer);
     }

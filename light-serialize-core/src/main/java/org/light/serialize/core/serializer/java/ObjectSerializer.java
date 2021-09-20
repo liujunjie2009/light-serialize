@@ -8,6 +8,7 @@ import org.light.serialize.core.io.ObjectOutput;
 import org.light.serialize.core.io.ReadContext;
 import org.light.serialize.core.io.WriteContext;
 import org.light.serialize.core.serializer.Serializer;
+import org.light.serialize.core.util.BufferUtil;
 import org.light.serialize.core.util.UnsafeUtil;
 import sun.misc.Unsafe;
 
@@ -110,29 +111,14 @@ public class ObjectSerializer<T> extends Serializer<T> {
         Integer fieldNameIndex = writeContext.getFieldNameIndex(fieldName);
 
         /*
-         * 1.The last bit mask of tag represent field index(bit:1) or name(bit:0).
-         * 2.The second last bit mask of tag represent UTF-8(bit:1) or ASCII(bit:0)
+         * The last bit mask of tag represent field index(bit:1) or name(bit:0).
          */
         if (fieldNameIndex == null) {
             int length = fieldName.length();
-            scan:
-            if (length > 0 && length < 32) {
-                for (int i = 0; i < length; i++) {
-                    if (fieldName.charAt(i) > 127) {
-                        break scan;
-                    }
-                }
-
-                output.writeByte(length << 2);
-                for (int i = 0; i < length; i++) {
-                    output.writeByte(fieldName.charAt(i));
-                }
-                return;
+            output.writeVarInt(length << 1);
+            for (int i = 0; i < length; i++) {
+                output.writeUtf8Char(fieldName.charAt(i));
             }
-
-            byte[] bytes = fieldName.getBytes(StandardCharsets.UTF_8);
-            output.writeVarInt((bytes.length << 2) & 2);
-            output.writeBytes(bytes);
             writeContext.putFieldName(fieldName);
         } else {
             output.writeVarInt((fieldNameIndex << 1) | 1);
@@ -148,28 +134,14 @@ public class ObjectSerializer<T> extends Serializer<T> {
 
         // field name index
         if ((tag & 1) == 1) {
-            return readContext.getFieldName(tag >>> 2);
+            return readContext.getFieldName(tag >>> 1);
         } else {
-            /*
-             * ASCII
-             */
-            byte[] bytes = input.readBytes(tag >>> 2);
-            if ((tag & 2) == 0) {
-                int length = bytes.length;
-                char[] chars = new char[length];
-                for (int i = 0; i < length; i++) {
-                    chars[i] = (char) bytes[i];
-                }
-
-                return new String(chars);
+            int length = tag >>> 1;
+            char[] chars = new char[length];
+            for (int i = 0; i < length; i++) {
+                chars[i] = input.readUtf8Char();
             }
-
-            /*
-             * UTF-8
-             */
-            String fieldName = new String(bytes, StandardCharsets.UTF_8);
-            readContext.addFieldName(fieldName);
-            return fieldName;
+            return new String(chars);
         }
     }
 
