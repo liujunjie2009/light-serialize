@@ -40,9 +40,10 @@ public class HessianSimpleBenchmark {
         output.writeObject(testSimple);
         output.flush();
         output.close();
-        byte[] serializeBytes = outputStream.toByteArray();
-        Hessian2Input input = new Hessian2Input(new ByteArrayInputStream(serializeBytes));
-        return input.readObject();
+//        byte[] serializeBytes = outputStream.toByteArray();
+//        Hessian2Input input = new Hessian2Input(new ByteArrayInputStream(serializeBytes));
+//        return input.readObject();
+        return null;
     }
 
 }

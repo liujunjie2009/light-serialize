@@ -2,6 +2,7 @@ package org.light.serialize.core.serializer;
 
 import org.light.serialize.core.constants.Constants;
 import org.light.serialize.core.serializer.java.*;
+import org.light.serialize.core.util.ObjectMap;
 import org.light.serialize.core.util.ReflectUtil;
 
 import java.io.IOException;
@@ -10,8 +11,10 @@ import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Calendar;
+import java.util.Objects;
+import java.util.SimpleTimeZone;
+import java.util.TimeZone;
 
 /**
  * DefaultSerializerFactory
@@ -22,8 +25,8 @@ public class DefaultSerializerFactory implements SerializerFactory {
 
     private static final DefaultSerializerFactory sharedInstance = new DefaultSerializerFactory();
 
-    protected final Map<Class<?>, Serializer<?>> serializers = new ConcurrentHashMap<>(1024);
-    protected final Map<Long, Serializer<?>> registeredSerializers = new ConcurrentHashMap<>(258);
+    protected final ObjectMap<Class<?>, Serializer<?>> serializers = new ObjectMap<>(1024);
+    protected final ObjectMap<Long, Serializer<?>> registeredSerializers = new ObjectMap<>(258);
 
     public static DefaultSerializerFactory getSharedInstance() {
         return sharedInstance;
@@ -72,7 +75,7 @@ public class DefaultSerializerFactory implements SerializerFactory {
     @Override
     public void register(Serializer<?> serializer) {
         Objects.requireNonNull(serializer);
-        Map<Long, Serializer<?>> registeredSerializers = this.registeredSerializers;
+        ObjectMap<Long, Serializer<?>> registeredSerializers = this.registeredSerializers;
         Long typeId = serializer.getTypeId();
         Serializer<?> preSerializer = registeredSerializers.get(typeId);
 
@@ -99,7 +102,7 @@ public class DefaultSerializerFactory implements SerializerFactory {
     public Serializer<?> getSerializer(Class<?> type) {
         Objects.requireNonNull(type);
 
-        Map<Class<?>, Serializer<?>> serializers = this.serializers;
+        ObjectMap<Class<?>, Serializer<?>> serializers = this.serializers;
         Serializer<?> serializer = serializers.get(type);
 
         if (serializer != null) {
@@ -197,11 +200,8 @@ public class DefaultSerializerFactory implements SerializerFactory {
         }
     }
 
-    public Map<Class<?>, Serializer<?>> getSerializers() {
-        return serializers;
-    }
+//    public Map<Class<?>, Serializer<?>> getSerializers() {
+//        return serializers;
+//    }
 
-    public Map<Long, Serializer<?>> getRegisteredSerializers() {
-        return registeredSerializers;
-    }
 }

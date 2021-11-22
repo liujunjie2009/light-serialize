@@ -6,6 +6,7 @@ import org.light.serialize.core.serializer.DefaultSerializerFactory;
 import org.light.serialize.core.serializer.Serializer;
 import org.light.serialize.core.serializer.SerializerFactory;
 import org.light.serialize.core.util.IdentityIntMap;
+import org.light.serialize.core.util.ObjectIntMap;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +40,12 @@ public class WriteContext {
     /**
      * The field name indexes, index start from 0,key: field name.
      */
-    private Map<String, Integer> fieldNameIndexes = new HashMap<>(128);
+//    private ObjectIntMap<String> fieldNameIndexes = new ObjectIntMap<>(128);
+
+    /**
+     * The field name type indexes, index start from 0,key: field name class.
+     */
+    private ObjectIntMap<Class<?>> fieldNameTypeIndexes = new ObjectIntMap<>(128);
 
     /**
      * The serialize object recursion depth.
@@ -111,19 +117,29 @@ public class WriteContext {
         return index;
     }
 
-    public Integer putFieldName(String fieldName) {
-        Map<String, Integer> fieldNameIndexes = this.fieldNameIndexes;
-        Integer index = fieldNameIndexes.get(fieldName);
-        if (index == null) {
-            index = fieldNameIndexes.size();
-            fieldNameIndexes.put(fieldName, index);
-        }
+//    public Integer putFieldName(String fieldName) {
+//        ObjectIntMap<String> fieldNameIndexes = this.fieldNameIndexes;
+//        Integer index = fieldNameIndexes.get(fieldName, -1);
+//        if (index == null) {
+//            index = fieldNameIndexes.size();
+//            fieldNameIndexes.put(fieldName, index);
+//        }
+//
+//        return index;
+//    }
 
-        return index;
+//    public Integer getFieldNameIndex(String fieldName) {
+//        return fieldNameIndexes.get(fieldName, -1);
+//    }
+
+    public void putFieldNameClass(Class<?> type) {
+        ObjectIntMap<Class<?>> indexes = this.fieldNameTypeIndexes;
+        int index = indexes.size();
+        indexes.put(type, index);
     }
 
-    public Integer getFieldNameIndex(String fieldName) {
-        return fieldNameIndexes.get(fieldName);
+    public int getFieldNameTypeIndex(Class<?> type) {
+        return this.fieldNameTypeIndexes.get(type, Constants.NULL_INDEX);
     }
 
     public int increaseDepth() {
@@ -142,7 +158,8 @@ public class WriteContext {
         this.serializerFactory = DefaultSerializerFactory.getSharedInstance();
         this.objectIndexes.clear();
         this.typeIndexes.clear();
-        this.fieldNameIndexes.clear();
+//        this.fieldNameIndexes.clear();
+        this.fieldNameTypeIndexes.clear();
         this.depth = 0;
         this.strategy = Strategy.getDefault();
     }

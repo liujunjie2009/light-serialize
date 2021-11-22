@@ -27,16 +27,16 @@ public class ClassSerializerTest {
         DefaultSerializerFactory.getSharedInstance().register(new ObjectSerializer<ClassItem>(ClassItem.class));
 
 
-        Map<Class<?>, Serializer<?>> serializers = DefaultSerializerFactory.getSharedInstance().getSerializers();
-
-        long totalBytes = 0;
-        for (Class<?> clazz : serializers.keySet()) {
-            output.writeObject(clazz);
-            totalBytes += output.buffer().readableBytes();
-            Assert.assertEquals(clazz, input.readObject());
-        }
-        System.out.println(totalBytes);// 2402
-        Assert.assertEquals(0, output.buffer().readableBytes());
+//        Map<Class<?>, Serializer<?>> serializers = DefaultSerializerFactory.getSharedInstance().getSerializers();
+//
+//        long totalBytes = 0;
+//        for (Class<?> clazz : serializers.keySet()) {
+//            output.writeObject(clazz);
+//            totalBytes += output.buffer().readableBytes();
+//            Assert.assertEquals(clazz, input.readObject());
+//        }
+//        System.out.println(totalBytes);// 2402
+//        Assert.assertEquals(0, output.buffer().readableBytes());
 
     }
 

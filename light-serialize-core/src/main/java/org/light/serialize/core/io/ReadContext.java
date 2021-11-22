@@ -33,6 +33,22 @@ public class ReadContext {
      */
     private final List<Class<?>> referenceTypes = new ArrayList<>(32);
 
+
+    /**
+     * The reference FieldSerializer, class reference index start from 0.
+     */
+    private final List<List<?>> referenceFieldSerializers = new ArrayList<>(128);
+
+    public void addReferenceFieldSerializers(List<?> fieldSerializers) {
+        referenceFieldSerializers.add(fieldSerializers);
+    }
+
+    public List<?> getReferenceFieldSerializers(int index) {
+        List<List<?>> referenceFieldSerializers = this.referenceFieldSerializers;
+        return referenceFieldSerializers.size() > index ? referenceFieldSerializers.get(index) : null;
+    }
+
+
     /**
      * The serialize object recursion depth.
      */

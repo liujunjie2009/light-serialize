@@ -1,6 +1,7 @@
 package org.light.serialize.core.io;
 
 import org.light.serialize.core.buffer.Buffer;
+import org.light.serialize.core.buffer.ByteBuffer;
 import org.light.serialize.core.buffer.LinkedByteBuffer;
 import org.light.serialize.core.constants.Constants;
 import org.light.serialize.core.constants.TagId;
@@ -22,11 +23,11 @@ public class ObjectOutput {
     protected final Buffer buffer;
 
     public ObjectOutput() {
-        this.buffer = LinkedByteBuffer.alloc();
+        this.buffer = ByteBuffer.alloc();
     }
 
     public ObjectOutput(int initBufferCapacity) {
-        this.buffer = LinkedByteBuffer.alloc(initBufferCapacity);
+        this.buffer = ByteBuffer.alloc(initBufferCapacity);
     }
 
     public ObjectOutput(Buffer buffer) {

@@ -1,5 +1,6 @@
 package org.light.serialize.core.serializer.java;
 
+import org.light.serialize.core.constants.Constants;
 import org.light.serialize.core.constants.Strategy;
 import org.light.serialize.core.instantiator.ObjectInstantiator;
 import org.light.serialize.core.instantiator.sun.UnSafeInstantiator;
@@ -9,6 +10,7 @@ import org.light.serialize.core.io.ReadContext;
 import org.light.serialize.core.io.WriteContext;
 import org.light.serialize.core.serializer.Serializer;
 import org.light.serialize.core.util.BufferUtil;
+import org.light.serialize.core.util.ObjectIntMap;
 import org.light.serialize.core.util.UnsafeUtil;
 import sun.misc.Unsafe;
 
@@ -106,24 +108,24 @@ public class ObjectSerializer<T> extends Serializer<T> {
     /**
      * write field name
      */
-    private static void writeFieldName(String fieldName, ObjectOutput output) {
-        WriteContext writeContext = WriteContext.get();
-        Integer fieldNameIndex = writeContext.getFieldNameIndex(fieldName);
-
-        /*
-         * The last bit mask of tag represent field index(bit:1) or name(bit:0).
-         */
-        if (fieldNameIndex == null) {
-            int length = fieldName.length();
-            output.writeVarInt(length << 1);
-            for (int i = 0; i < length; i++) {
-                output.writeUtf8Char(fieldName.charAt(i));
-            }
-            writeContext.putFieldName(fieldName);
-        } else {
-            output.writeVarInt((fieldNameIndex << 1) | 1);
-        }
-    }
+//    private static void writeFieldName(String fieldName, ObjectOutput output) {
+//        WriteContext writeContext = WriteContext.get();
+//        Integer fieldNameIndex = writeContext.getFieldNameIndex(fieldName);
+//
+//        /*
+//         * The last bit mask of tag represent field index(bit:1) or name(bit:0).
+//         */
+//        if (fieldNameIndex == null) {
+//            int length = fieldName.length();
+//            output.writeVarInt(length << 1);
+//            for (int i = 0; i < length; i++) {
+//                output.writeUtf8Char(fieldName.charAt(i));
+//            }
+//            writeContext.putFieldName(fieldName);
+//        } else {
+//            output.writeVarInt((fieldNameIndex << 1) | 1);
+//        }
+//    }
 
     /**
      * read field name
@@ -147,60 +149,65 @@ public class ObjectSerializer<T> extends Serializer<T> {
 
     @Override
     public void write(ObjectOutput output, T value) throws IOException {
-        WriteContext writeContext = WriteContext.get();
+        Strategy strategy = WriteContext.get().getStrategy();
+        switch (WriteContext.get().getStrategy()) {
+            case NAME:
+                writeForName(output, value);
+                break;
+            case ORDER:
+                writeForOrder(output, value);
+                break;
+            case EXACT:
+                writeForExact(output, value);
+                break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + strategy);
+        }
 
-        try {
-            Strategy strategy = writeContext.getStrategy();
+    }
 
-            if (strategy == Strategy.NAME) {
-                List<Map<String, FieldSerializer>> nameFieldSerializersList = this.nameFieldSerializersList;
-                int endIndex = nameFieldSerializersList.size() - 1;
-                for (int i = 0; i <= endIndex; i++) {
-                    Map<String, FieldSerializer> fieldSerializers = nameFieldSerializersList.get(i);
-                    int fieldSize = fieldSerializers.size();
-                    output.writeVarInt(i == endIndex ? (fieldSize << 1) | 1 : (fieldSize << 1));
+    /**
+     * writeForOrder
+     *
+     * @param output
+     * @param value
+     * @throws IOException
+     */
+    private void writeForOrder(ObjectOutput output, T value) throws IOException {
+        List<List<FieldSerializer>> orderFieldSerializersList = this.orderFieldSerializersList;
+        int depth = orderFieldSerializersList.size();
 
-                    for (Map.Entry<String, FieldSerializer> fieldSerializerEtr : fieldSerializers.entrySet()) {
-                        writeFieldName(fieldSerializerEtr.getKey(), output);
-                        fieldSerializerEtr.getValue().write(output, value);
-                    }
-                }
+        output.writeVarInt(depth);
 
-                return;
+        for (int i = 0; i < depth; i++) {
+            List<FieldSerializer> fieldSerializers = orderFieldSerializersList.get(i);
+            int fieldSize = fieldSerializers.size();
+            output.writeVarInt(fieldSize);
+
+            for (int j = 0; j < fieldSize; j++) {
+                fieldSerializers.get(j).write(output, value);
             }
+        }
 
-            if (strategy == Strategy.ORDER) {
-                List<List<FieldSerializer>> orderFieldSerializersList = this.orderFieldSerializersList;
-                int endIndex = orderFieldSerializersList.size() - 1;
-                for (int i = 0; i <= endIndex; i++) {
-                    List<FieldSerializer> fieldSerializers = orderFieldSerializersList.get(i);
-                    int fieldSize = fieldSerializers.size();
-                    output.writeVarInt(i == endIndex ? (fieldSize << 1) | 1 : (fieldSize << 1));
-                    for (int j = 0; j < fieldSerializers.size(); j++) {
-                        fieldSerializers.get(j).write(output, value);
-                    }
-                }
+    }
 
-                return;
-            }
+    /**
+     * writeForExact
+     *
+     * @param output
+     * @param value
+     * @throws IOException
+     */
+    private void writeForExact(ObjectOutput output, T value) throws IOException {
+        List<FieldSerializer> serializers = this.exactFieldSerializers;
+        int fieldSize = serializers.size();
 
-            if (strategy == Strategy.EXACT) {
-                List<FieldSerializer> fieldSerializerList = this.exactFieldSerializers;
-                int fieldSize = fieldSerializerList.size();
-                if (fieldSize == 0) {
-                    return;
-                }
+        if (fieldSize == 0) {
+            return;
+        }
 
-                for (int index = 0; index < fieldSize; index++) {
-                    fieldSerializerList.get(index).write(output, value);
-                }
-                return;
-            }
-
-        } catch (IOException e) {
-            throw e;
-        } catch (Throwable e) {
-            throw new IOException(e);
+        for (int i = 0; i < fieldSize; i++) {
+            serializers.get(i).write(output, value);
         }
     }
 
@@ -208,11 +215,24 @@ public class ObjectSerializer<T> extends Serializer<T> {
     public T read(ObjectInput input) throws IOException {
         ReadContext readContext = ReadContext.get();
         Strategy strategy = readContext.getStrategy();
-        T object = null;
+        T target = null;
 
         try {
-            object = instantiator.newInstance();
-            readContext.putReferenceObject(object);
+            target = instantiator.newInstance();
+            readContext.putReferenceObject(target);
+
+            switch (strategy) {
+
+                case NAME:
+                    readForName(input, target);
+                    break;
+                case ORDER:
+                    break;
+                case EXACT:
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + strategy);
+            }
 
             if (strategy == Strategy.NAME) {
                 List<Map<String, FieldSerializer>> nameFieldSerializersList = this.nameFieldSerializersList;
@@ -225,7 +245,7 @@ public class ObjectSerializer<T> extends Serializer<T> {
 
                     // TODO: bug?
                     if (from >= depth) {
-                        return object;
+                        return target;
                     }
 
                     for (int i = 0; i < readFieldSize; i++) {
@@ -236,7 +256,7 @@ public class ObjectSerializer<T> extends Serializer<T> {
                                 FieldSerializer fieldSerializer = fieldSerializers.get(fieldName);
 
                                 if (fieldSerializer != null) {
-                                    fieldSerializer.read(input, object);
+                                    fieldSerializer.read(input, target);
                                     break scan;
                                 }
                             }
@@ -248,7 +268,7 @@ public class ObjectSerializer<T> extends Serializer<T> {
                     // TODO: bug?
                     // end?
                     if ((readFieldSizeTag & 1) == 1) {
-                        return object;
+                        return target;
                     }
 
                     from++;
@@ -265,7 +285,7 @@ public class ObjectSerializer<T> extends Serializer<T> {
                     int readFieldSize = readFieldSizeTag >>> 1;
 
                     if (from >= depth) {
-                        return object;
+                        return target;
                     }
 
                     List<FieldSerializer> orderFieldSerializers = orderFieldSerializersList.get(from);
@@ -273,7 +293,7 @@ public class ObjectSerializer<T> extends Serializer<T> {
 
                     for (int i = 0; i < readFieldSize; i++) {
                         if (i < fieldSize) {
-                            orderFieldSerializers.get(i).read(input, object);
+                            orderFieldSerializers.get(i).read(input, target);
                         } else {
                             input.readObject();
                         }
@@ -282,7 +302,7 @@ public class ObjectSerializer<T> extends Serializer<T> {
 
                     // end?
                     if ((readFieldSizeTag & 1) == 1) {
-                        return object;
+                        return target;
                     }
 
                     from++;
@@ -292,13 +312,13 @@ public class ObjectSerializer<T> extends Serializer<T> {
             if (strategy == Strategy.EXACT) {
                 List<FieldSerializer> exactFieldSerializers = this.exactFieldSerializers;
                 for (int i = 0; i < exactFieldSerializers.size(); i++) {
-                    exactFieldSerializers.get(i).read(input, object);
+                    exactFieldSerializers.get(i).read(input, target);
                 }
 
-                return object;
+                return target;
             }
 
-            return object;
+            return target;
         } catch (IOException e) {
             throw e;
         } catch (Throwable e) {
@@ -306,6 +326,156 @@ public class ObjectSerializer<T> extends Serializer<T> {
         }
     }
 
+    /**
+     * readForName
+     * @param input
+     * @param target
+     * @return
+     * @throws IOException
+     */
+    private void readForName(ObjectInput input, Object target) throws IOException {
+        ReadContext readContext = ReadContext.get();
+        int depth = nameFieldSerializersList.size();
+        List<FieldSerializer> targetFieldSerializers = null;
+
+        int fieldNameTypeIndex = input.readVarInt();
+
+        /*
+         * read field name and get field serializer
+         */
+        if (fieldNameTypeIndex == 0) {
+
+            targetFieldSerializers = new ArrayList<>(exactFieldSerializers.size());
+            int readDepth = input.readVarInt();
+
+            for (int from = 0; from < readDepth; from++) {
+                int fieldSize = input.readVarInt();
+                for (int j = 0; j < fieldSize; j++) {
+                    String fieldName = readFieldName(input);
+
+
+                    for (int k = 0; k < readDepth + from; k++) {
+                        Map<String, FieldSerializer> fieldSerializers = nameFieldSerializersList.get(k % depth);
+                        FieldSerializer fieldSerializer = fieldSerializers.get(fieldName);
+
+                        if (fieldSerializer == null) {
+                            targetFieldSerializers.add(NoneFieldSerializer.instance);
+                        } else {
+                            targetFieldSerializers.add(fieldSerializer);
+                        }
+                    }
+
+                }
+
+            }
+
+            readContext.addReferenceFieldSerializers(targetFieldSerializers);
+
+        } else {
+            targetFieldSerializers = (List<FieldSerializer>) readContext.getReferenceFieldSerializers(fieldNameTypeIndex);
+        }
+
+        /*
+         * read field value
+         */
+        for (int i = 0; i < targetFieldSerializers.size(); i++) {
+            FieldSerializer serializer = targetFieldSerializers.get(i);
+            serializer.read(input, target);
+        }
+
+    }
+
+    /**
+     * readForOrder
+     *
+     * @param input
+     * @param target
+     * @throws IOException
+     */
+    private void readForOrder(ObjectInput input, Object target) throws IOException {
+        int readDepth = input.readVarInt();
+        List<List<FieldSerializer>> orderFieldSerializersList = this.orderFieldSerializersList;
+        int depth = orderFieldSerializersList.size();
+
+        for (int i = 0; i < readDepth; i++) {
+            int readFieldSize = input.readVarInt();
+            for (int j = 0; j < readFieldSize; j++) {
+
+                if (i >= depth) {
+                    input.readObject();
+                    continue;
+                }
+
+                List<FieldSerializer> orderFieldSerializers = orderFieldSerializersList.get(i);
+                int fieldSize = orderFieldSerializers.size();
+
+                if(j >= fieldSize) {
+                    input.readObject();
+                    continue;
+                }
+
+                orderFieldSerializers.get(j).read(input, target);
+            }
+        }
+
+    }
+
+    /**
+     * readForExact
+     *
+     * @param input
+     * @param target
+     * @throws IOException
+     */
+    private void readForExact(ObjectInput input, Object target) throws IOException {
+        List<FieldSerializer> exactFieldSerializers = this.exactFieldSerializers;
+        for (int i = 0; i < exactFieldSerializers.size(); i++) {
+            exactFieldSerializers.get(i).read(input, target);
+        }
+    }
+
+
+    /**
+     * writeByFieldName
+     *
+     * @param output
+     * @param value
+     */
+    private void writeForName(ObjectOutput output, T value) throws IOException {
+        WriteContext writeContext = WriteContext.get();
+        int fieldNameTypeIndex = writeContext.getFieldNameTypeIndex(type);
+
+        /*
+         * write field name
+         */
+        if (fieldNameTypeIndex == Constants.NULL_INDEX) {
+            // 0: field names and values
+            output.writeByte(0);
+
+            List<List<FieldSerializer>> orderFieldSerializersList = this.orderFieldSerializersList;
+            int depth = orderFieldSerializersList.size();
+
+            output.writeVarInt(depth);
+
+            for (int i = 0; i < depth; i++) {
+                List<FieldSerializer> fieldSerializers = orderFieldSerializersList.get(i);
+                int fieldSize = fieldSerializers.size();
+                output.writeVarInt(fieldSize);
+
+                for (int j = 0; j < fieldSize; j++) {
+                    output.writeString(fieldSerializers.get(j).name);
+                }
+            }
+        } else {
+            // field names type index and values
+            output.writeByte(fieldNameTypeIndex);
+        }
+
+        /*
+         * write field value
+         */
+        writeForExact(output, value);
+    }
 }
 
 abstract class FieldSerializer {
@@ -320,6 +490,12 @@ abstract class FieldSerializer {
         this.name = field.getName();
         this.field = field;
         this.offset = unsafe.objectFieldOffset(field);
+    }
+
+    public FieldSerializer() {
+        this.name = null;
+        this.field = null;
+        this.offset = -1;
     }
 
     public abstract void write(ObjectOutput output, Object target) throws IOException;
@@ -493,4 +669,19 @@ class StringFieldSerializer extends ObjectFieldSerializer {
 
 }
 
+class NoneFieldSerializer extends FieldSerializer {
+
+    public static final NoneFieldSerializer instance = new NoneFieldSerializer();
+
+    @Override
+    public void write(ObjectOutput output, Object target) throws IOException {
+        // do nothing
+    }
+
+    @Override
+    public void read(ObjectInput input, Object target) throws IOException {
+        input.readObject();
+    }
+
+}
 
