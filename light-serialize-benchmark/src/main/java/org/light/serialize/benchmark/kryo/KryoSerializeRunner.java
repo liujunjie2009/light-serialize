@@ -14,7 +14,7 @@ public class KryoSerializeRunner {
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include("org.light.serialize.benchmark.kryo.*")
+                .include("org.light.serialize.benchmark.kryo.KryoSimpleBenchmark")
                 .warmupIterations(2)
                 .warmupBatchSize(10)
                 .warmupTime(TimeValue.seconds(2))

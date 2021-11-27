@@ -37,14 +37,14 @@ public class ReadContext {
     /**
      * The reference FieldSerializer, class reference index start from 0.
      */
-    private final List<List<?>> referenceFieldSerializers = new ArrayList<>(128);
+    private final List<Object[]> referenceFieldSerializers = new ArrayList<>(16);
 
-    public void addReferenceFieldSerializers(List<?> fieldSerializers) {
+    public void addReferenceFieldSerializers(Object[] fieldSerializers) {
         referenceFieldSerializers.add(fieldSerializers);
     }
 
-    public List<?> getReferenceFieldSerializers(int index) {
-        List<List<?>> referenceFieldSerializers = this.referenceFieldSerializers;
+    public Object[] getReferenceFieldSerializers(int index) {
+        List<Object[]> referenceFieldSerializers = this.referenceFieldSerializers;
         return referenceFieldSerializers.size() > index ? referenceFieldSerializers.get(index) : null;
     }
 
@@ -53,11 +53,6 @@ public class ReadContext {
      * The serialize object recursion depth.
      */
     private int depth = 0;
-
-    /**
-     * The readed field names.
-     */
-    private List<String> fieldNames = new ArrayList<>(128);
 
     /**
      * The serializing global strategy.
@@ -70,14 +65,6 @@ public class ReadContext {
      */
     public static ReadContext get() {
         return readContexts.get();
-    }
-
-    public void addFieldName(String fieldName) {
-        fieldNames.add(fieldName);
-    }
-
-    public String getFieldName(int index) {
-        return fieldNames.size() > index ? fieldNames.get(index) : null;
     }
 
     /**
@@ -162,10 +149,10 @@ public class ReadContext {
      * Reset context.
      */
     public void reset() {
-        this.serializerFactory = DefaultSerializerFactory.getSharedInstance();
+//        this.serializerFactory = DefaultSerializerFactory.getSharedInstance();
         this.referenceObjects.clear();
         this.referenceTypes.clear();
-        this.fieldNames.clear();
+        this.referenceFieldSerializers.clear();
         this.depth = 0;
     }
 }

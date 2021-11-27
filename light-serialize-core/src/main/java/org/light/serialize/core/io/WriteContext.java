@@ -3,13 +3,11 @@ package org.light.serialize.core.io;
 import org.light.serialize.core.constants.Constants;
 import org.light.serialize.core.constants.Strategy;
 import org.light.serialize.core.serializer.DefaultSerializerFactory;
-import org.light.serialize.core.serializer.Serializer;
 import org.light.serialize.core.serializer.SerializerFactory;
 import org.light.serialize.core.util.IdentityIntMap;
 import org.light.serialize.core.util.ObjectIntMap;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 
 /**
  * The write context.
@@ -38,14 +36,9 @@ public class WriteContext {
     private final IdentityIntMap<Class<?>> typeIndexes = new IdentityIntMap<>();
 
     /**
-     * The field name indexes, index start from 0,key: field name.
-     */
-//    private ObjectIntMap<String> fieldNameIndexes = new ObjectIntMap<>(128);
-
-    /**
      * The field name type indexes, index start from 0,key: field name class.
      */
-    private ObjectIntMap<Class<?>> fieldNameTypeIndexes = new ObjectIntMap<>(128);
+    private IdentityIntMap<Class<?>> fieldNameTypeIndexes = new IdentityIntMap<>(8);
 
     /**
      * The serialize object recursion depth.
@@ -67,6 +60,7 @@ public class WriteContext {
     }
 
     public void setStrategy(Strategy strategy) {
+        Objects.requireNonNull(strategy);
         this.strategy = strategy;
     }
 
@@ -117,23 +111,8 @@ public class WriteContext {
         return index;
     }
 
-//    public Integer putFieldName(String fieldName) {
-//        ObjectIntMap<String> fieldNameIndexes = this.fieldNameIndexes;
-//        Integer index = fieldNameIndexes.get(fieldName, -1);
-//        if (index == null) {
-//            index = fieldNameIndexes.size();
-//            fieldNameIndexes.put(fieldName, index);
-//        }
-//
-//        return index;
-//    }
-
-//    public Integer getFieldNameIndex(String fieldName) {
-//        return fieldNameIndexes.get(fieldName, -1);
-//    }
-
     public void putFieldNameClass(Class<?> type) {
-        ObjectIntMap<Class<?>> indexes = this.fieldNameTypeIndexes;
+        IdentityIntMap<Class<?>> indexes = this.fieldNameTypeIndexes;
         int index = indexes.size();
         indexes.put(type, index);
     }
@@ -155,10 +134,9 @@ public class WriteContext {
     }
 
     public void reset() {
-        this.serializerFactory = DefaultSerializerFactory.getSharedInstance();
+//        this.serializerFactory = DefaultSerializerFactory.getSharedInstance();
         this.objectIndexes.clear();
         this.typeIndexes.clear();
-//        this.fieldNameIndexes.clear();
         this.fieldNameTypeIndexes.clear();
         this.depth = 0;
         this.strategy = Strategy.getDefault();

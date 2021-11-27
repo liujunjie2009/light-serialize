@@ -3,7 +3,10 @@ package org.light.serialize.core.util;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ReflectUtil
@@ -27,14 +30,22 @@ public class ReflectUtil {
     /**
      * Load class by name.
      */
+    public static final ConcurrentHashMap<String, Class<?>> typeCache = new ConcurrentHashMap<>(64);
     public static Class<?> loadClass(String name) {
         try {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            if (loader != null) {
-                return Class.forName(name, false, loader);
-            } else {
-                return Class.forName(name);
+            Class<?> clazz = typeCache.get(name);
+            if (clazz == null) {
+                ClassLoader loader = Thread.currentThread().getContextClassLoader();
+                if (loader != null) {
+                    clazz = Class.forName(name, false, loader);
+                } else {
+                    clazz = Class.forName(name);
+                }
+
+                typeCache.put(name, clazz);
             }
+
+            return clazz;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

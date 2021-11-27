@@ -6,8 +6,11 @@ import org.light.serialize.core.constants.TagId;
 import org.light.serialize.core.serializer.Serializer;
 import org.light.serialize.core.serializer.java.*;
 import org.light.serialize.core.util.BufferUtil;
+import org.light.serialize.core.util.ReflectUtil;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.light.serialize.core.constants.Constants.*;
 
@@ -337,7 +340,7 @@ public class ObjectInput {
                 case TagId.INT_N_2048 + 13:
                 case TagId.INT_N_2048 + 14:
                 case TagId.INT_2047:
-                    return ((tag + 31) << 8) + readByte();
+                    return ((tag + 31) << 8) + readByteInt();
 
                 case TagId.INT_N_262144:
                 case TagId.INT_N_262144 + 1:
@@ -347,13 +350,13 @@ public class ObjectInput {
                 case TagId.INT_N_262144 + 5:
                 case TagId.INT_N_262144 + 6:
                 case TagId.INT_262143:
-                    return ((tag + 19) << 16) + (readByte() << 8) + readByte();
+                    return ((tag + 19) << 16) + (readByteInt() << 8) + readByteInt();
 
                 case TagId.INT_N_33554432:
                 case TagId.INT_N_33554432 + 1:
                 case TagId.INT_N_33554432 + 2:
                 case TagId.INT_33554433:
-                    return ((tag + 13) << 24) + (readByte() << 16) + (readByte() << 8) + readByte();
+                    return ((tag + 13) << 24) + (readByteInt() << 16) + (readByteInt() << 8) + readByteInt();
 
                 /*
                  * Long
@@ -407,41 +410,41 @@ public class ObjectInput {
                 case TagId.LONG_N_1024 + 5:
                 case TagId.LONG_N_1024 + 6:
                 case TagId.LONG_1023:
-                    return ((tag - 13) << 8) + readByte();
+                    return ((tag - 13) << 8) + readByteInt();
 
                 case TagId.LONG_N_131072:
                 case TagId.LONG_N_131072 + 1:
                 case TagId.LONG_N_131072 + 2:
                 case TagId.LONG_131071:
-                    return ((tag + 15) << 16) + (readByte() << 8) + readByte();
+                    return ((tag + 15) << 16) + (readByteInt() << 8) + readByteInt();
 
                 case TagId.LONG_N_16777216:
                 case TagId.LONG_16777215:
-                    return ((tag + 22) << 24) + (readByte() << 16) + (readByte() << 8) + readByte();
+                    return ((tag + 22) << 24) + (readByteInt() << 16) + (readByteInt() << 8) + readByteInt();
 
                 case TagId.LONG_INT:
                     return (long) readInt();
                 case TagId.LONG_5_BYTES:
-                    return (long) (buffer.readByte() & 0xFF) << 32
-                            | (long) (buffer.readByte() & 0xFF) << 24
-                            | (buffer.readByte() & 0xFF) << 16
-                            | (buffer.readByte() & 0xFF) << 8
-                            | buffer.readByte() & 0xFF;
+                    return (long) readByteInt() << 32
+                            | (long) readByteInt() << 24
+                            | readByteInt() << 16
+                            | readByteInt() << 8
+                            | readByteInt();
                 case TagId.LONG_6_BYTES:
-                    return (long) (buffer.readByte() & 0xFF) << 40
-                            | (long) (buffer.readByte() & 0xFF) << 32
-                            | (long) (buffer.readByte() & 0xFF) << 24
-                            | (buffer.readByte() & 0xFF) << 16
-                            | (buffer.readByte() & 0xFF) << 8
-                            | buffer.readByte() & 0xFF;
+                    return (long) readByteInt() << 40
+                            | (long) readByteInt() << 32
+                            | (long) readByteInt() << 24
+                            | readByteInt() << 16
+                            | readByteInt() << 8
+                            | readByteInt();
                 case TagId.LONG_7_BYTES:
-                    return (long) (buffer.readByte() & 0xFF) << 48
-                            | (long) (buffer.readByte() & 0xFF) << 40
-                            | (long) (buffer.readByte() & 0xFF) << 32
-                            | (long) (buffer.readByte() & 0xFF) << 24
-                            | (buffer.readByte() & 0xFF) << 16
-                            | (buffer.readByte() & 0xFF) << 8
-                            | buffer.readByte() & 0xFF;
+                    return (long) readByteInt() << 48
+                            | (long) readByteInt() << 40
+                            | (long) readByteInt() << 32
+                            | (long) readByteInt() << 24
+                            | readByteInt() << 16
+                            | readByteInt() << 8
+                            | readByteInt();
 
                 /*
                  * Float
@@ -664,6 +667,11 @@ public class ObjectInput {
         }
     }
 
+    // TODO：优化？重命名？
+    private int readByteInt() {
+        return buffer.readByte() & 0xFF;
+    }
+
     /**
      * Read by reference type.
      */
@@ -700,11 +708,11 @@ public class ObjectInput {
      */
     private Object readByTypeName() throws ClassNotFoundException, IOException {
         ReadContext readContext = ReadContext.get();
-        Class<?> clazz = Class.forName(readString());
+        String name = readString();
+        Class<?> clazz = ReflectUtil.loadClass(name);
+
         Serializer<?> serializer = readContext.getSerializerFactory().getSerializer(clazz);
-
-        readContext.putReferenceType(serializer.getType());
-
+        readContext.putReferenceType(clazz);
         Object readObject = serializer.read(this);
         readContext.putReferenceObjectIfAbsent(readObject, readContext.getReferenceObjectsSize());
         return readObject;

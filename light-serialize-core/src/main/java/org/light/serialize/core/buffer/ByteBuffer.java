@@ -234,10 +234,6 @@ public class ByteBuffer implements Buffer {
     @Override
     public byte readByte() {
         checkReadableBytes(1);
-        return doReadByte();
-    }
-
-    private byte doReadByte() {
         return bytes[readerIndex++];
     }
 
@@ -297,10 +293,6 @@ public class ByteBuffer implements Buffer {
     @Override
     public ByteBuffer writeByte(int value) {
         ensureWritable(1);
-        return doWriteByte(value);
-    }
-
-    private ByteBuffer doWriteByte(int value) {
         bytes[writerIndex++] = (byte) value;
         return this;
     }
@@ -313,8 +305,7 @@ public class ByteBuffer implements Buffer {
 
         int length = src.length;
         ensureWritable(length);
-        doWriteBytes(src, 0, length);
-        return this;
+        return doWriteBytes(src, 0, length);
     }
 
     @Override
@@ -325,8 +316,7 @@ public class ByteBuffer implements Buffer {
 
         checkRangeBounds(srcIndex, length, src.length);
         ensureWritable(length);
-        doWriteBytes(src, srcIndex, length);
-        return this;
+        return doWriteBytes(src, srcIndex, length);
     }
 
     /**
@@ -362,16 +352,16 @@ public class ByteBuffer implements Buffer {
      */
     @Override
     public ByteBuffer discardSomeReadBytes() {
-        if (readerIndex == writerIndex) {
-            return reset();
-        }
+//        if (readerIndex == writerIndex) {
+//            return reset();
+//        }
+//
+//        int resetCapacity = 0;
+//
+//        this.readerIndex -= resetCapacity;
+//        this.writerIndex -= resetCapacity;
 
-        int resetCapacity = 0;
-
-        this.readerIndex -= resetCapacity;
-        this.writerIndex -= resetCapacity;
-
-        return this;
+        return reset();
     }
 
     @Override

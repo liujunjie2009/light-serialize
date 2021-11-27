@@ -25,7 +25,8 @@ public class LightSimpleExactBenchmark {
     @Benchmark
     public Object testSimple() throws IOException {
         Buffer buffer = SerializeUtil.serialize(testSimple, Strategy.EXACT);
-        return SerializeUtil.deserialize(buffer, Strategy.EXACT);
+//        return SerializeUtil.deserialize(buffer, Strategy.EXACT);
+        return null;
     }
 
 }

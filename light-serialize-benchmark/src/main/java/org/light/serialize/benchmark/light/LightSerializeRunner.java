@@ -14,10 +14,10 @@ public class LightSerializeRunner {
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-                .include("org.light.serialize.benchmark.light.LightSimpleNameBenchmark")
+                .include("org.light.serialize.benchmark.light.LightSimpleExactBenchmark")
                 .warmupIterations(2)
                 .warmupBatchSize(10)
-                .warmupTime(TimeValue.seconds(2))
+                .warmupTime(TimeValue.seconds(20))
                 .measurementIterations(3)
                 .measurementBatchSize(10)
                 .measurementTime(TimeValue.seconds(1))

@@ -36,8 +36,9 @@ public class KryoSimpleBenchmark {
     public Object testSimple() throws IOException {
         Output output = new Output(64, Integer.MAX_VALUE);
         kryo.writeClassAndObject(output, testSimple);
-        Input input = new Input(output.toBytes());
-        return kryo.readClassAndObject(input);
+//        Input input = new Input(output.toBytes());
+//        return kryo.readClassAndObject(input);
+        return null;
     }
 
 }

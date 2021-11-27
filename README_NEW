@@ -1,0 +1,41 @@
+## 测试
+    内部类、匿名内部类、私有内部无默认构造函数类、实例内部类、枚举内部类(静态、非静态)、接口内部类
+    父类、子类同名、增加、删除、插入属性  name\order模式
+    单元测试 注册类型的子类型，如Map 、集合
+    每种类型都要测试引用序列化
+    数组 集合 中的null测试  数组包含引用的测试，数组作为引用的测试
+    IdentityIntMap和HashMap的性能测试     是否有内存泄露风险
+    计算对象引用索引的数据结构：海量数据下避免频繁的数据拷贝、装箱、拆箱  链表 数组 斐波拉契数列
+
+
+
+## 优化
+
+    *1、UTF8Decoder or utf-8解析
+    2、使用ThreadLocal来缓存bytes
+    3、使用asm避免反射
+    4、自定义Map    kryo数据结构：IdentityMap、ObjectMap、IdentityObjectIntMap、ObjectIntMap、IntArray
+
+ ## 其它
+     指定开源协议、邮箱，去除日期，保留作者
+     参考 https://github.com/liuyangming/ByteTCC
+     用eclipse 打开一下项目
+     Hessian 2.0序列化协议规范: https://blog.csdn.net/yysct2005/article/details/38515087
+     https://www.it610.com/article/1278393208555978752.htm       几种常见序列化实现方式，及其兼容性
+     AsmField、ReflectField、UnsafeField、TaggedFieldSerializer、VersionFieldSerializer
+
+
+## Future
+    Buffer支持重置Writer、Reader索引？？
+    大文本支持
+    原子类序列化 or 注册
+    TypeResolver 支持配置、扩展
+    参考objenesis实现更多instantiator？
+    支持java序列化
+    字节码支持 asm java assit  javassist、asm(ReflectASM) 、和byte buddy,bytecode，参考fastjson优化方案
+    支持更多的ObjectInstantiator，如sun.reflect.ReflectionFactory.getReflectionFactory().newConstructorForSerialization
+
+补充buffer flush
+
+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
+
