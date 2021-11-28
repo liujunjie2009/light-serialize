@@ -8,6 +8,7 @@ import org.light.serialize.core.io.ObjectOutput;
 import org.light.serialize.core.io.WriteContext;
 import org.light.serialize.core.model.Person;
 import org.light.serialize.core.model.Simple;
+import org.light.serialize.core.serializer.java.ObjectSerializer;
 
 import java.io.IOException;
 
@@ -22,11 +23,17 @@ public class ObjectSerializerTest {
         ObjectInput input = new ObjectInput(output.buffer());
 
         Simple simple = new Simple();
-        output.writeObject(simple);
-        Simple actualSimple = (Simple)input.readObject();
+        Simple actualSimple = null;
 
+//        output.writeObject(simple);
+//        actualSimple = (Simple)input.readObject();
+//        Assert.assertEquals(simple, actualSimple);
+//        Assert.assertEquals(0, output.buffer().readableBytes());
+
+        ObjectSerializer<Simple> simpleSerializer = new ObjectSerializer<>(Simple.class);
+        simpleSerializer.write(output, simple, Strategy.ORDER);
+        actualSimple = simpleSerializer.read(new ObjectInput(output.buffer()), Strategy.ORDER);
         Assert.assertEquals(simple, actualSimple);
-        Assert.assertEquals(0, output.buffer().readableBytes());
 
 //        Person person = new Person("lsl", 30);
 //        output.writeObject(person);

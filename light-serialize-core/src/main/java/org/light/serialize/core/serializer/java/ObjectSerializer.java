@@ -27,6 +27,8 @@ import java.util.List;
  */
 public class ObjectSerializer<T> extends Serializer<T> {
 
+    protected static final Unsafe unsafe = UnsafeUtil.getUnsafe();
+
     private final ObjectInstantiator<T> instantiator;
 
     private FieldSerializer[] exactFieldSerializers;
@@ -164,7 +166,17 @@ public class ObjectSerializer<T> extends Serializer<T> {
         /*
          * write field value
          */
-        writeForExact(output, value);
+        FieldSerializer[] serializers = this.exactFieldSerializers;
+        int fieldSize = serializers.length;
+
+        if (fieldSize == 0) {
+            return;
+        }
+
+        for (int i = 0; i < fieldSize; i++) {
+            // write field value
+            serializers[i].write(output, value);
+        }
     }
 
     /**
@@ -182,9 +194,37 @@ public class ObjectSerializer<T> extends Serializer<T> {
             // write field size
             output.writeVarInt(fieldSize);
 
+            if (fieldSize == 0) {
+                continue;
+            }
+
             for (int j = 0; j < fieldSize; j++) {
                 // write field value
-                fieldSerializers[j].write(output, value);
+                FieldSerializer serializer = fieldSerializers[j];
+                Class<?> type = serializer.field.getType();
+                long offset = serializer.offset;
+
+                if (type.equals(Boolean.TYPE)) {
+                    output.writeBool(unsafe.getBoolean(value, offset));
+                } else if (type.equals(Byte.TYPE)) {
+                    output.writeByte(unsafe.getByte(value, offset));
+                } else if (type.equals(Short.TYPE)) {
+                    output.writeZigzagVarInt(unsafe.getShort(value, offset));
+                } else if (type.equals(Character.TYPE)) {
+                    output.writeChar(unsafe.getChar(value, offset));
+                } else if (type.equals(Integer.TYPE)) {
+                    output.writeZigzagVarInt(unsafe.getInt(value, offset));
+                } else if (type.equals(Long.TYPE)) {
+                    output.writeZigzagVarLong(unsafe.getLong(value, offset));
+                } else if (type.equals(Float.TYPE)) {
+                    output.writeFloat(unsafe.getFloat(value, offset));
+                } else if (type.equals(Double.TYPE)) {
+                    output.writeDouble(unsafe.getDouble(value, offset));
+                } else if (type.equals(String.class)) {
+                    output.writeString((String) unsafe.getObject(value, offset));
+                } else {
+                    output.writeObject(unsafe.getObject(value, offset));
+                }
             }
         }
 
@@ -203,8 +243,38 @@ public class ObjectSerializer<T> extends Serializer<T> {
 
         for (int i = 0; i < fieldSize; i++) {
             // write field value
-            serializers[i].write(output, value);
+            FieldSerializer serializer = serializers[i];
+            Class<?> type = serializer.field.getType();
+//            serializer.write(output, value);
+
+            long offset = serializer.offset;
+            if (type.equals(Boolean.TYPE)) {
+                output.writeBool(unsafe.getBoolean(value, offset));
+            } else if (type.equals(Byte.TYPE)) {
+                output.writeByte(unsafe.getByte(value, offset));
+            } else if (type.equals(Short.TYPE)) {
+                output.writeZigzagVarInt(unsafe.getShort(value, offset));
+            } else if (type.equals(Character.TYPE)) {
+                output.writeChar(unsafe.getChar(value, offset));
+            } else if (type.equals(Integer.TYPE)) {
+                output.writeZigzagVarInt(unsafe.getInt(value, offset));
+            } else if (type.equals(Long.TYPE)) {
+                output.writeZigzagVarLong(unsafe.getLong(value, offset));
+            } else if (type.equals(Float.TYPE)) {
+                output.writeFloat(unsafe.getFloat(value, offset));
+            } else if (type.equals(Double.TYPE)) {
+                output.writeDouble(unsafe.getDouble(value, offset));
+            } else if (type.equals(String.class)) {
+                output.writeString((String) unsafe.getObject(value, offset));
+            } else {
+                output.writeObject(unsafe.getObject(value, offset));
+//                Object fieldVal = unsafe.getObject(value, offset);
+//                Serializer s = WriteContext.get().getSerializerFactory().getSerializer(fieldVal.getClass());
+//                s.write(output, fieldVal);
+            }
         }
+
+
     }
 
     @Override
@@ -320,7 +390,34 @@ public class ObjectSerializer<T> extends Serializer<T> {
                     continue;
                 }
 
-                orderFieldSerializers[i].read(input, target);
+//                orderFieldSerializers[i].read(input, target);
+                FieldSerializer serializer = orderFieldSerializers[i];
+                Class<?> type = serializer.field.getType();
+                long offset = serializer.offset;
+
+                if (type.equals(Boolean.TYPE)) {
+                    unsafe.putBoolean(target, offset, input.readBool());
+                } else if (type.equals(Byte.TYPE)) {
+                    unsafe.putByte(target, offset, input.readByte());
+                } else if (type.equals(Short.TYPE)) {
+                    unsafe.putShort(target, offset, (short) input.readZigzagVarInt());
+                } else if (type.equals(Character.TYPE)) {
+                    unsafe.putChar(target, offset, input.readChar());
+                } else if (type.equals(Integer.TYPE)) {
+                    unsafe.putInt(target, offset, input.readZigzagVarInt());
+                } else if (type.equals(Long.TYPE)) {
+                    unsafe.putLong(target, offset, input.readZigzagVarLong());
+                } else if (type.equals(Float.TYPE)) {
+                    unsafe.putFloat(target, offset, input.readFloat());
+                } else if (type.equals(Double.TYPE)) {
+                    unsafe.putDouble(target, offset, input.readDouble());
+                } else if (type.equals(String.class)) {
+                    unsafe.putObject(target, offset, input.readString());
+                } else {
+                    Object o1 = input.readObject();
+                    unsafe.putObject(target, offset, o1);
+                }
+
             }
         }
 
@@ -374,12 +471,12 @@ class BooleanFieldSerializer extends FieldSerializer {
 
     @Override
     public void write(ObjectOutput output, Object target) throws IOException {
-        output.writeBool(unsafe.getBoolean(target, offset));
+        output.writeObject(unsafe.getBoolean(target, offset));
     }
 
     @Override
     public void read(ObjectInput input, Object target) throws IOException {
-        unsafe.putBoolean(target, offset, input.readBool());
+        unsafe.putBoolean(target, offset, (boolean) input.readObject());
     }
 }
 
@@ -546,4 +643,3 @@ class NoneFieldSerializer extends FieldSerializer {
     }
 
 }
-

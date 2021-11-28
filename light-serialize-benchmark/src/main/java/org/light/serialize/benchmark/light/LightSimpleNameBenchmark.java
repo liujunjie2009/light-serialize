@@ -27,8 +27,9 @@ public class LightSimpleNameBenchmark {
     public Object testSimple() throws IOException {
         Buffer buffer = SerializeUtil.serialize(testSimple, Strategy.NAME);
         return SerializeUtil.deserialize(buffer, Strategy.NAME);
-        // TODO：bug?
-//        return SerializeUtil.deserialize(buffer.readBytes(new byte[buffer.readableBytes()]), Strategy.NAME);
+//        byte[] dest = new byte[buffer.readableBytes()];
+//        buffer.readBytes(dest);
+//        return SerializeUtil.deserialize(dest, Strategy.NAME);
 //        return null;
     }
 

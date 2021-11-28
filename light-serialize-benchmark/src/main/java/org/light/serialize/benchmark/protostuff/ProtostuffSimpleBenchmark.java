@@ -17,21 +17,21 @@ public class ProtostuffSimpleBenchmark {
     private static final int TEST_LIST_SIZE = 10000;
 
     private static Simple testSimple = new Simple();
+    private static final RuntimeSchema<Simple> schema = RuntimeSchema.createFrom(Simple.class);
 
     @Setup(Level.Trial)
     public void start() throws IOException {
-        RuntimeSchema<Simple> schema = RuntimeSchema.createFrom(Simple.class);
         byte[] serializeBytes = GraphIOUtil.toByteArray(testSimple, schema, LinkedBuffer.allocate(512));
         System.out.print("Simple bytes:" + serializeBytes.length + "\t");
     }
 
     @Benchmark
     public Object testSimple() throws IOException, IllegalAccessException, InstantiationException {
-        RuntimeSchema<Simple> schema = RuntimeSchema.createFrom(Simple.class);
         byte[] serializeBytes = GraphIOUtil.toByteArray(testSimple, schema, LinkedBuffer.allocate(512));
         Simple deserialize = Simple.class.newInstance();
         GraphIOUtil.mergeFrom(serializeBytes, testSimple, schema);
         return deserialize;
+//        return null;
     }
 
 }
